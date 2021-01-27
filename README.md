@@ -2,9 +2,14 @@
 
 # Installation & settings
 
+## Clone the repository
+
+    $ git clone https://github.com/lvanderlaat/sabalt.git
+
 ## Conda environment
 
     $ conda create -n sabalt -c conda-forge spleeter
+    $ cd sabalt
     $ conda activate sabalt
     (sabalt) $ pip install -e .
 
