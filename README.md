@@ -1,3 +1,5 @@
+# Semi-Automatic Bass Lines Transcription
+
 # Installation & settings
 
 ## Conda environment
@@ -8,6 +10,8 @@
 
 ## SoX command line tool 
 
+`sox` is a command line tool we use to get the bass an active up.
+
     $ brew install sox
 
 ## Audacity
@@ -15,18 +19,24 @@
 Dowload [Audacity](https://www.audacityteam.org/download/mac/).
 
 Change your audacity default settings in `Audacity > Preferences > Track > Spectrogram`:
-* Frequency range (use one octave up). open low E is `E1`:
+* Frequency range between 70 and 220 Hz:
+* Algorithm = Pitch (EAC)
+* Window size: 4096
 
+To check different frequency ranges do:
     (sabalt) $ ipython
     In [1]: import librosa
     In [2]: librosa.note_to_hz(['E2', 'E4'])
 
-* Algorithm = Pitch (EAC)
-* Window size: 4096
+## Lilypond
+
+Download and install [Lilypond](http://lilypond.org/download.html)
 
 # Run
 
 ## Pre-process
+
+We split the song in 4 tracks: bass, voice, drums and other using `spleeter`. Then we get an active up version of the bass.
 
     $ conda activate sabalt
     (sabalt) $ sabalt-pre-process [PATH TO AUDIO FILE] [PATH TO OUTPUT FOLDER]
@@ -48,6 +58,8 @@ Export the labels (`File > Export > Export Labels...`)
 
 ## Create notes labels
 
+Once the notes are picked we transform the frequencies to musical notes (A-G):
+
     (sabalt) $ sabalt-pitches [PATH TO LABELS FILE]
 
 ## Check (with bass)
@@ -56,12 +68,18 @@ Load the labels file in Audacity, grab your bass and check. If something is wron
 
 ## Export to Lilypond
 
-First get the exact tempo of the song:
+In order to set the right note duration (quarter, eight, etc.) we need to know the exact tempo of the song (use the original record):
 
     (sabalt) $ ipython
     In [1]: y, sr = librosa.load(mp3_file)
     In [2]: librosa.beat.tempo(y=y, sr=sr)
 
-Use this tempo to convert to musical notation:
+Use this tempo and the labels file (`sabalt-pitches` output) to convert to musical notation:
 
     (sabalt) $ sabalt-score [PATH TO LABELS FILE] [TEMPO]
+
+## Compile the score
+
+    $ lilypond score.ly
+
+This is not a perfect score, just a starting point, you'll have to check.
