@@ -1,0 +1,10 @@
+#!/bin/bash
+
+inp=$1
+out=$2
+
+bass_file="$out/bass.wav"
+octv_file="$out/bass_8ve.wav"
+    
+spleeter separate -i $inp -p spleeter:4stems-16kHz -o $out -f "{instrument}.wav"
+sox $bass_file $octv_file pitch 1200 bass -30 100 gain 10

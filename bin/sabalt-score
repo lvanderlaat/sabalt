@@ -1,0 +1,70 @@
+#!/usr/bin/env python
+
+# Python Standard Library
+import argparse
+import os
+
+# Other dependencies
+import pandas as pd
+
+# Local files
+from sabalt import notes, export
+
+
+def parse_args():
+    description = (
+        'Converts labels from Audacity to Lilypond code'
+    )
+    parser = argparse.ArgumentParser(description=description)
+
+    required_parser = parser.add_argument_group('Required arguments')
+    required_parser.add_argument('filepath', help='Path to Audacity labels file')
+    required_parser.add_argument('bpm', type=float,
+                                 help='Path to Audacity labels file')
+
+    notation_parser = parser.add_argument_group('Musical notation arguments')
+    notation_parser.add_argument('-b', '--beat', help='Note = to one beat',
+                        type=int, default=4)
+    notation_parser.add_argument('-s', '--subdivision', help='Shortest note',
+                        type=int, default=16)
+
+    parser.add_argument('-p', '--precision',
+                        help='To round times to detect rests between notes',
+                        type=int, default=1)
+    args = parser.parse_args()
+    return args
+
+
+
+if __name__ == '__main__':
+    args = parse_args()
+
+    outpath = os.path.join(os.path.split(args.filepath)[0], 'score.ly')
+
+    df = pd.read_csv(args.filepath, sep='\t', names=['start',  'end', 'pitch'],
+                     comment='\\')
+
+    df['duration'] = df.end - df.start
+
+    rest_start, rest_end = [], []
+    row_iterator = df.iterrows()
+    _, last = next(row_iterator)
+    for i, current in row_iterator:
+        if round(last.end, args.precision) != round(current.start, args.precision):
+            rest_start.append(last.end)
+            rest_end.append(current.start)
+        last = current
+
+    rest_label = ['r']*len(rest_start)
+    rest_df = pd.DataFrame(list(zip(rest_start, rest_end, rest_label)),
+                           columns=['start', 'end', 'pitch'])
+
+    rest_df['duration'] = rest_df.end - rest_df.start
+
+    df = pd.concat([df, rest_df])
+    df.sort_values(by='start', inplace=True)
+
+    df['notation'] = notes.lily_notation(args.bpm, args.beat, args.subdivision,
+                                         df.duration, notes.lily_pitch(df.pitch))
+
+    export.lilypond(df, outpath)

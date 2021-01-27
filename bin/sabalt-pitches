@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+# Python Standard Library
+import argparse
+import os
+from statistics import mean
+
+# Other dependencies
+import librosa
+import pandas as pd
+import numpy as np
+
+
+def parse_args():
+    description = (
+        'Adds musical pitches labels to notes picked in Audacity'
+    )
+    parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument('filepath', help='Path to Audacity labels file')
+
+    args = parser.parse_args()
+    return args
+
+
+if __name__ == '__main__':
+    args = parse_args()
+
+    outpath = os.path.splitext(args.filepath)[0] + '_notes.txt'
+
+    start, end, fmin, fmax = [], [], [], []
+    with open(args.filepath) as f:
+        for i, line in enumerate(f):
+            if i%2 == 0:
+                start.append(float(line.split()[0]))
+                end.append(float(line.split()[1]))
+            else:
+                fmin.append(float(line[1:].split()[0]))
+                fmax.append(float(line[1:].split()[1]))
+
+    df = pd.DataFrame(list(zip(start, end, fmin, fmax)),
+                      columns=['start', 'end', 'fmin', 'fmax'])
+
+    df['duration']  = df.end - df.start
+    df['frequency'] = df.loc[:, 'fmin':'fmax'].mean(axis=1)
+    df['pitch']     = librosa.hz_to_note(df.frequency/2)
+
+    with open(outpath, 'w') as f:
+        for i, row in df.iterrows():
+            f.write(f'{row.start}\t{row.end}\t{row.pitch}\n')
+            f.write(f'\\\t{row.fmin}\t{row.fmax}\n')
